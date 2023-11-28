@@ -121,7 +121,7 @@ int main(int argc, char** argv) {
     MPI_Comm_rank(MPI_COMM_WORLD,&rank);
 	MPI_Comm_size(MPI_COMM_WORLD,&size);
 
-    int N=10, nRodadas=3;
+    int N=40, nRodadas=5;
 
     //divisão de domínio
     int nRowsLocal = N/size;
@@ -147,8 +147,12 @@ int main(int argc, char** argv) {
     //popular a matriz com dados iniciais
     for(int row=1; row < nRowsLocalWithGhost -1; row++) {
         for(int col=0; col < N; col++) {
-            matrizAtual[row][col] = rand() % 2;
+            matrizAtual[row][col] = 0;
         }
+    }
+    if (rank == 0) {
+        glider(matrizAtual, 1, 1);
+        rPentomino(matrizAtual, 10, 30);
     }
 
     // vizinho superior

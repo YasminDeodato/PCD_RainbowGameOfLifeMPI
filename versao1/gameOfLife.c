@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+# define N 40
+
 int contaCelula(float **matriz, int x, int y){
     int contador = 0;
 
@@ -121,7 +123,7 @@ int main(int argc, char** argv) {
     MPI_Comm_rank(MPI_COMM_WORLD,&rank);
 	MPI_Comm_size(MPI_COMM_WORLD,&size);
 
-    int N=40, nRodadas=5;
+    int nRodadas=5;
 
     //divisão de domínio
     int nRowsLocal = N/size;
@@ -135,13 +137,13 @@ int main(int argc, char** argv) {
 
     // criar matriz local
     float **matrizAtual = (float** )malloc(sizeof(float*) * nRowsLocalWithGhost);
-    for (int i = 0; i < n; i++){
-        matrizAtual[i] = (float*)malloc(sizeof(float) * nColwsLocalWithGhost);
+    for (int i = 0; i < N; i++){
+        matrizAtual[i] = (float*)malloc(sizeof(float) * N);
     }
 
     float **matrizProxima = (float** )malloc(sizeof(float*) * nRowsLocalWithGhost);
-    for (int i = 0; i < n; i++){
-        matrizAtual[i] = (float*)malloc(sizeof(float) * nColwsLocalWithGhost);
+    for (int i = 0; i < N; i++){
+        matrizAtual[i] = (float*)malloc(sizeof(float) * N);
     }
 
     //popular a matriz com dados iniciais
@@ -172,9 +174,9 @@ int main(int argc, char** argv) {
 
 
         //recebe informações das bordas vizinhas
-        MPI_Recv(&matrizAtual[nRowsLocal + 1][0], N, MPI_FLOAT, vizinhoInferior, 0, MPI_COMM_WORLD);
-
-        MPI_Recv(&matrizAtual[0][0], N, MPI_FLOAT, vizinhoSuperior, 0, MPI_COMM_WORLD);
+        MPI_Recv(&matrizAtual[nRowsLocal + 1][0], N, MPI_FLOAT, vizinhoInferior, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        
+        MPI_Recv(&matrizAtual[0][0], N, MPI_FLOAT, vizinhoSuperior, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         
         // display current grid on screen
         if (rank != 0) { 

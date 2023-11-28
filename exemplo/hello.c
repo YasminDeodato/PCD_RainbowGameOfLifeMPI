@@ -1,8 +1,43 @@
-#include <mpi.h>
 #include <stdio.h>
+#include <mpi.h>
 #include <stdlib.h>
 
-# define N 40
+# define N 15
+# define NGERACOES 3
+
+void printMatriz(float **matriz) {
+    for( int i = 0; i < N; i++){
+        for(int j = 0; j < N; j++){
+            printf("%.1f ", matriz[i][j]);
+        }
+        printf("\n");
+    }
+    printf("\n\n");
+}
+
+void zeraMatriz(float **matriz) {
+    for( int i = 0; i < N; i++){
+        for(int j = 0; j < N; j++){
+            matriz[i][j] = 0.0;
+        }
+    }
+}
+
+void glider(float **matriz, int x, int y) { 
+    matriz[x  ][y+1] = 1.0;
+    matriz[x+1][y+2] = 1.0;
+    matriz[x+2][y] = 1.0;
+    matriz[x+2][y+1] = 1.0;
+    matriz[x+2][y+2] = 1.0;
+}
+
+void rPentomino(float **matriz, int x, int y) {
+    matriz[x+1][y  ] = 1.0;
+    matriz[x  ][y+1] = 1.0;
+    matriz[x+1][y+1] = 1.0;
+    matriz[x+2][y+1] = 1.0;
+    matriz[x  ][y+2] = 1.0;
+}
 
 int contaCelula(float **matriz, int x, int y){
     int contador = 0;
@@ -100,61 +135,29 @@ float verificarNovoEstadoCelula(float **matriz, int i, int j) {
     }
 }
 
-void glider(float **matriz, int x, int y) { 
-    matriz[x  ][y+1] = 1.0;
-    matriz[x+1][y+2] = 1.0;
-    matriz[x+2][y] = 1.0;
-    matriz[x+2][y+1] = 1.0;
-    matriz[x+2][y+2] = 1.0;
-}
-
-void rPentomino(float **matriz, int x, int y) {
-    matriz[x+1][y  ] = 1.0;
-    matriz[x  ][y+1] = 1.0;
-    matriz[x+1][y+1] = 1.0;
-    matriz[x+2][y+1] = 1.0;
-    matriz[x  ][y+2] = 1.0;
-}
-
 int main(int argc, char** argv) {
-    int rank, size;
+    int rank, size, message_Item;
+
     MPI_Init(&argc, &argv);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-    MPI_Comm_rank(MPI_COMM_WORLD,&rank);
-	MPI_Comm_size(MPI_COMM_WORLD,&size);
-
-    int nRodadas=5;
-
-    //divisão de domínio
-    int nRowsLocal = N/size;
-    if (rank == size - 1) {
-        nRowsLocal += N % size;
-    }
-
-    // linha de bordo "fantasma"
-    int nRowsLocalWithGhost = nRowsLocal + 2;
-    // int nColwsLocalWithGhost = N + 2;
-
-    // criar matriz local
-    float **matrizAtual = (float** )malloc(sizeof(float*) * nRowsLocalWithGhost);
+    float **matrizAtual = (float** )malloc(sizeof(float*) * (N+2));
     for (int i = 0; i < N; i++){
         matrizAtual[i] = (float*)malloc(sizeof(float) * N);
     }
 
-    float **matrizProxima = (float** )malloc(sizeof(float*) * nRowsLocalWithGhost);
+    float **matrizProxima = (float** )malloc(sizeof(float*) * (N+2));
     for (int i = 0; i < N; i++){
         matrizProxima[i] = (float*)malloc(sizeof(float) * N);
     }
 
-    //popular a matriz com dados iniciais
-    for(int row=1; row < nRowsLocalWithGhost -1; row++) {
-        for(int col=0; col < N; col++) {
-            matrizAtual[row][col] = 0;
-        }
-    }
+    zeraMatriz(matrizAtual);
+    zeraMatriz(matrizProxima);
+
     if (rank == 0) {
         glider(matrizAtual, 1, 1);
-        rPentomino(matrizAtual, 10, 30);
+        rPentomino(matrizAtual, 5, 10);
     }
 
     // vizinho superior
@@ -164,54 +167,36 @@ int main(int argc, char** argv) {
     int vizinhoInferior = (rank == size - 1) ? 0 : rank++;
 
 
-    for (int rodada = 0; rodada < nRodadas; rodada++) {
+    for (int rodada = 0; rodada < NGERACOES; rodada++) {
         //-------------- FRONTEIRAS ------------------------
         // envia primeira linha para vizinho superior
-        MPI_Send(&matrizAtual[1][0], N, MPI_FLOAT, vizinhoSuperior, 0, MPI_COMM_WORLD);
+        MPI_Send(&(matrizAtual[1][0]), N, MPI_FLOAT, vizinhoSuperior, 0, MPI_COMM_WORLD);
 
         // envia última linha para vizinho inferior
-        MPI_Send(&matrizAtual[nRowsLocal][0], N, MPI_FLOAT, vizinhoInferior, 0, MPI_COMM_WORLD);
+        MPI_Send(&(matrizAtual[N][0]), N, MPI_FLOAT, vizinhoInferior, 0, MPI_COMM_WORLD);
 
 
         //recebe informações das bordas vizinhas
-        MPI_Recv(&matrizAtual[nRowsLocal + 1][0], N, MPI_FLOAT, vizinhoInferior, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(&(matrizAtual[N + 1][0]), N, MPI_FLOAT, vizinhoInferior, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         
-        MPI_Recv(&matrizAtual[0][0], N, MPI_FLOAT, vizinhoSuperior, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(&(matrizAtual[0][0]), N, MPI_FLOAT, vizinhoSuperior, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         
-        // display current grid on screen
-        if (rank != 0) { 
-            for (int row = 1; row <= nRowsLocal; row++) {
-                MPI_Send(&matrizAtual[row][1], N, MPI_FLOAT, 0, 0, MPI_COMM_WORLD);
-            }
-        } 
-
-        int vivosLocais = 0;
-        //-------------- ATUALIZAR GRID ------------------------
-        for (int i=1; i < nRowsLocal; i++) {
-            for (int j=0; j < N; j++) {
-                matrizProxima[i][j] = verificarNovoEstadoCelula(matrizAtual, i, j);
-
-                if (matrizProxima[i][j] > 0.0) vivosLocais++;
-
-            }
-        }
-
-        //----------- COPIA MATRIZ -----------
-        for (int i=1; i < nRowsLocal; i++) {
-            for (int j=0; j < N; j++) {
-                matrizAtual[i][j] = matrizProxima[i][j];
-            }
-        }
-
-        int totalVivosGeracao = 0;
-        MPI_Reduce(&vivosLocais, &totalVivosGeracao, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
-
-        // Print the total live count for each generation (only done by rank 0)
-        if (rank == 0) {
-            printf("Generation %d: Total live cells across all processes: %d\n", rodada, totalVivosGeracao);
-        }
+        printf("RODADA %d PROCESSO %d\n", rodada, rank);
+        printMatriz(matrizAtual);
     }
 
+    /*if(rank == 0){
+        message_Item = 42;
+        MPI_Send(&message_Item, 1, MPI_INT, 1, 1, MPI_COMM_WORLD);
+        printf("Message Sent: %d\n", message_Item);
+        printMatriz(matrizAtual);
+    }
+
+    else if(rank == 1){
+        MPI_Recv(&message_Item, 1, MPI_INT, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        printf("Message Received: %d\n", message_Item);
+        printMatriz(matrizAtual);
+    }*/
 
     MPI_Finalize();
     return 0;

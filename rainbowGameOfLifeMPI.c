@@ -183,7 +183,7 @@ int main(int argc, char** argv) {
 
         // atualiza grid e conta numero de vivos locais
         int vivosLocais = 0;
-        for (int i=1; i < nLinhasLocal; i++) {
+        for (int i=1; i < nLinhasLocal+1; i++) {
             for (int j=0; j < N; j++) {
                 matrizProxima[i][j] = verificarNovoEstadoCelula(matrizAtual, i, j);
 
@@ -193,7 +193,7 @@ int main(int argc, char** argv) {
         }
 
         // copia matriz anterior para atual
-        for (int i=1; i < nLinhasLocal; i++) {
+        for (int i=1; i < nLinhasLocal+1; i++) {
             for (int j=0; j < N; j++) {
                 matrizAtual[i][j] = matrizProxima[i][j];
             }

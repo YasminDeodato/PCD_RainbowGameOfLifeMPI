@@ -51,7 +51,7 @@ Geracao n 50 - Celulas vivas: 55
 Geracao n 51 - Celulas vivas: 38
 Geracao n 52 - Celulas vivas: 45
 Geracao n 53 - Celulas vivas: 42
-SGeracao n 54 - Celulas vivas: 54
+Geracao n 54 - Celulas vivas: 54
 Geracao n 55 - Celulas vivas: 47
 Geracao n 56 - Celulas vivas: 54
 Geracao n 57 - Celulas vivas: 48

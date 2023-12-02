@@ -16,4 +16,7 @@ mpicc prog.c -o prog
 ```bash
 mpirun -np 5 prog
 mpirun --allow-run-as-root --oversubscribe -np 5 prog
+
+mpicc rainbowGameOfLifeMPI.c -o game
+sudo time mpirun -np 4 ./game
 ```

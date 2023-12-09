@@ -9,7 +9,7 @@
 #include <stdlib.h>
 
 # define N 2048
-# define NGERACOES 200
+# define NGERACOES 2000
 
 int contaCelula(float **matriz, int x, int y){
     int contador = 0;
